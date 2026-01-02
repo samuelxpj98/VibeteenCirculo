@@ -10,6 +10,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    
+    <!-- Babel para transpilar TSX no navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -27,7 +31,6 @@
                 dark: '#1a1a1a'
               },
               action: {
-                // Cores Ultra Vibrantes
                 blue: '#0084FF',
                 green: '#00F576',
                 orange: '#FF5E00'
@@ -57,7 +60,6 @@
       }
       .animate-float { animation: float 3s ease-in-out infinite; }
       
-      /* Cores Vibrantes Customizadas */
       .text-vibrant-blue { color: #0084FF; }
       .text-vibrant-green { color: #00F576; }
       .text-vibrant-orange { color: #FF5E00; }
@@ -70,17 +72,22 @@
       .glow-green { filter: drop-shadow(0 0 8px rgba(0, 245, 118, 0.4)); }
       .glow-orange { filter: drop-shadow(0 0 8px rgba(255, 94, 0, 0.4)); }
     </style>
-  <script type="importmap">
+    
+    <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
-</head>
+  </head>
   <body class="bg-background-light dark:bg-background-dark font-sans transition-colors duration-300">
     <div id="root"></div>
+    <!-- Script principal carregado como módulo e transpilado pelo Babel -->
+    <script type="text/babel" data-type="module" src="./index.tsx"></script>
   </body>
 </html>
