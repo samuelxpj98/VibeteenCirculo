@@ -1,0 +1,86 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VIBE TEEN - Círculo da Causa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: '#f9f506',
+              'primary-dark': '#e6e205',
+              background: {
+                light: '#f8f8f5',
+                dark: '#0f0f0f'
+              },
+              surface: {
+                light: '#ffffff',
+                dark: '#1a1a1a'
+              },
+              action: {
+                // Cores Ultra Vibrantes
+                blue: '#0084FF',
+                green: '#00F576',
+                orange: '#FF5E00'
+              }
+            },
+            fontFamily: {
+              sans: ['Plus Jakarta Sans', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      .bg-dot-pattern {
+        background-image: radial-gradient(#d1d1cf 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+      .dark .bg-dot-pattern {
+        background-image: radial-gradient(#333333 1px, transparent 1px);
+      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+      .animate-float { animation: float 3s ease-in-out infinite; }
+      
+      /* Cores Vibrantes Customizadas */
+      .text-vibrant-blue { color: #0084FF; }
+      .text-vibrant-green { color: #00F576; }
+      .text-vibrant-orange { color: #FF5E00; }
+      
+      .bg-vibrant-blue-soft { background-color: rgba(0, 132, 255, 0.12); }
+      .bg-vibrant-green-soft { background-color: rgba(0, 245, 118, 0.12); }
+      .bg-vibrant-orange-soft { background-color: rgba(255, 94, 0, 0.12); }
+      
+      .glow-blue { filter: drop-shadow(0 0 8px rgba(0, 132, 255, 0.4)); }
+      .glow-green { filter: drop-shadow(0 0 8px rgba(0, 245, 118, 0.4)); }
+      .glow-orange { filter: drop-shadow(0 0 8px rgba(255, 94, 0, 0.4)); }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+</head>
+  <body class="bg-background-light dark:bg-background-dark font-sans transition-colors duration-300">
+    <div id="root"></div>
+  </body>
+</html>
