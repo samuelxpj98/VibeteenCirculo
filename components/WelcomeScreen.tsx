@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { User } from '../types';
-import { findUserByEmail, saveOrUpdateUser } from '../services/apiService';
-import { AVATAR_COLORS } from '../constants';
+import { User } from '../types.ts';
+import { findUserByEmail, saveOrUpdateUser } from '../services/apiService.ts';
+import { AVATAR_COLORS } from '../constants.tsx';
 
 interface WelcomeScreenProps {
   onComplete: (user: User) => void;
@@ -105,12 +105,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
                 className="w-full h-16 px-6 bg-white dark:bg-zinc-900 rounded-2xl border-0 ring-1 ring-zinc-200 dark:ring-white/10 focus:ring-2 focus:ring-primary text-lg font-bold outline-none shadow-sm"
                 required
               />
-              
               {email.length > 0 && !email.includes('@') && (
                 <button
                   type="button"
                   onClick={appendGmail}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-primary/20 hover:bg-primary/40 text-zinc-600 dark:text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20 animate-in fade-in slide-in-from-right-2"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-primary/20 hover:bg-primary/40 text-zinc-600 dark:text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
                 >
                   + @gmail.com
                 </button>
