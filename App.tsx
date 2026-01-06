@@ -5,6 +5,7 @@ import { WelcomeScreen } from './components/WelcomeScreen';
 import { MuralCard } from './components/MuralCard';
 import { StatsCard } from './components/StatsCard';
 import { RegistrationForm } from './components/RegistrationForm';
+import { MissionHQ } from './components/MissionHQ';
 import { subscribeToActions, registerAction, getAllUsers, updateUserStatus, updateUserDetails, deleteAction, deleteUser } from './services/apiService';
 import { ACTION_CONFIG, AVATAR_COLORS } from './constants';
 
@@ -54,8 +55,9 @@ const App: React.FC = () => {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [syncing, setSyncing] = useState(true);
   
-  // Admin State
+  // Admin & Mode States
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showMissionHQ, setShowMissionHQ] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [adminUsers, setAdminUsers] = useState<User[]>([]);
@@ -241,6 +243,7 @@ const App: React.FC = () => {
   const spiralCoords = useMemo(() => getSpiralCoords(actions.length + 1, 180), [actions.length]);
 
   if (!user) return <WelcomeScreen onComplete={handleWelcomeComplete} />;
+  if (showMissionHQ) return <MissionHQ actions={actions} onClose={() => setShowMissionHQ(false)} />;
 
   return (
     <div className="min-h-screen flex flex-col max-w-md mx-auto relative bg-background-light dark:bg-background-dark text-zinc-900 dark:text-white pb-24 overflow-hidden">
@@ -370,13 +373,23 @@ const App: React.FC = () => {
                 <div className="flex-1 text-left font-black text-xs uppercase tracking-widest italic leading-none">Mudar Estilo</div>
               </button>
 
-              <button 
-                onClick={() => setShowPasswordModal(true)}
-                className="w-full flex items-center p-6 bg-zinc-900 dark:bg-zinc-800 text-white rounded-[32px] gap-4 border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform shadow-lg"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white"><span className="material-symbols-outlined">admin_panel_settings</span></div>
-                <div className="flex-1 text-left font-black text-xs uppercase tracking-widest italic leading-none">ADM</div>
-              </button>
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={() => setShowMissionHQ(true)}
+                  className="flex items-center p-6 bg-primary text-black rounded-[32px] gap-4 shadow-lg active:scale-95 transition-transform"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-black/10 flex items-center justify-center"><span className="material-symbols-outlined">insights</span></div>
+                  <div className="flex-1 text-left font-black text-[10px] uppercase tracking-widest italic leading-none">QG Missão</div>
+                </button>
+
+                <button 
+                  onClick={() => setShowPasswordModal(true)}
+                  className="flex items-center p-6 bg-zinc-900 dark:bg-zinc-800 text-white rounded-[32px] gap-4 border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform shadow-lg"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white"><span className="material-symbols-outlined">admin_panel_settings</span></div>
+                  <div className="flex-1 text-left font-black text-[10px] uppercase tracking-widest italic leading-none">ADM</div>
+                </button>
+              </div>
 
               <button 
                 onClick={() => { if(confirm('Sair da conta?')) { localStorage.removeItem('causa_user'); window.location.reload(); } }} 
@@ -420,7 +433,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL EDITAR PERFIL (AGORA COM NOME BLOQUEADO) */}
+      {/* MODAL EDITAR PERFIL */}
       {isEditingProfile && (
         <div className="fixed inset-0 z-[200] bg-background-light dark:bg-background-dark overflow-y-auto animate-in slide-in-from-bottom-10 p-6">
            <header className="flex items-center justify-between mb-8 pt-6">
@@ -477,7 +490,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* PAINEL ADMIN MODAL APRIMORADO */}
+      {/* PAINEL ADMIN MODAL */}
       {showAdminPanel && (
         <div className="fixed inset-0 z-[200] bg-background-light dark:bg-background-dark overflow-y-auto animate-in slide-in-from-bottom-10">
           <header className="p-6 pt-12 flex flex-col gap-6 sticky top-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md z-20 border-b border-black/5 dark:border-white/5">
@@ -555,7 +568,7 @@ const App: React.FC = () => {
                       <span className="material-symbols-outlined text-2xl">{ACTION_CONFIG[a.action].icon}</span>
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <p className="font-black text-xs uppercase tracking-tight italic leading-none mb-1">Impacto de {a.userName}</p>
+                      <p className="font-black text-xs uppercase tracking-tight italic leading-none mb-1">Impacto registrado</p>
                       <p className="text-[14px] font-black uppercase tracking-tighter text-primary-dark dark:text-primary truncate italic">{a.friendName}</p>
                       <p className="text-[8px] text-zinc-400 font-bold uppercase mt-1">{formatDate(a.timestamp)}</p>
                     </div>
@@ -586,7 +599,7 @@ const App: React.FC = () => {
               <span className="material-symbols-outlined text-6xl">{ACTION_CONFIG[selectedAction.action].icon}</span>
             </div>
             <h3 className="text-3xl font-black mb-2 uppercase tracking-tighter italic leading-none">{ACTION_CONFIG[selectedAction.action].label}</h3>
-            <p className="text-zinc-500 font-bold text-[10px] mb-4 uppercase tracking-[0.1em] italic">Registrado por {selectedAction.userName} em {formatDate(selectedAction.timestamp)}</p>
+            <p className="text-zinc-500 font-bold text-[10px] mb-4 uppercase tracking-[0.1em] italic">Registrado em {formatDate(selectedAction.timestamp)}</p>
             <div className="w-full p-8 bg-zinc-50 dark:bg-white/5 rounded-[32px] mb-8 text-center border border-zinc-100 dark:border-white/5">
               <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-3 italic">Impacto gerado em:</p>
               <p className="text-3xl font-black text-primary-dark dark:text-primary tracking-tighter uppercase italic leading-none">{selectedAction.friendName}</p>
