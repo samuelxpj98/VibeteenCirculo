@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { ActionType } from '../types.ts';
-import { ACTION_CONFIG } from '../constants.tsx';
+import { ActionType } from '../types';
+import { ACTION_CONFIG } from '../constants';
 
 interface RegistrationFormProps {
   onRegister: (friendName: string, action: ActionType) => void;

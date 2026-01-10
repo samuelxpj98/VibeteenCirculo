@@ -16,7 +16,7 @@ import {
   updateDoc,
   limit
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { CauseAction, ActionType, User, UserStatus } from '../types.ts';
+import { CauseAction, ActionType, User, UserStatus } from '../types';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAXP8095JDr1Ck1xFOoF5lCREE9VxXMUJw",
@@ -56,6 +56,11 @@ export const registerAction = async (data: { userName: string, friendName: strin
   }
 };
 
+export const deleteAction = async (actionId: string): Promise<void> => {
+  const actionDoc = doc(db, 'vibe_teen_actions', actionId);
+  await deleteDoc(actionDoc);
+};
+
 export const saveOrUpdateUser = async (user: User): Promise<void> => {
   const userDoc = doc(usersRef, user.email.toLowerCase());
   await setDoc(userDoc, {
@@ -65,6 +70,16 @@ export const saveOrUpdateUser = async (user: User): Promise<void> => {
     avatarColor: user.avatarColor,
     status: user.status || 'Visitante'
   }, { merge: true });
+};
+
+export const updateUserDetails = async (email: string, details: Partial<User>): Promise<void> => {
+  const userDoc = doc(usersRef, email.toLowerCase());
+  await updateDoc(userDoc, details);
+};
+
+export const deleteUser = async (email: string): Promise<void> => {
+  const userDoc = doc(usersRef, email.toLowerCase());
+  await deleteDoc(userDoc);
 };
 
 export const findUserByEmail = async (email: string): Promise<User | null> => {
@@ -81,22 +96,7 @@ export const getAllUsers = async (): Promise<User[]> => {
   return snap.docs.map(doc => doc.data() as User);
 };
 
-export const updateUserDetails = async (email: string, details: Partial<User>): Promise<void> => {
-  const userDoc = doc(usersRef, email.toLowerCase());
-  await updateDoc(userDoc, details);
-};
-
 export const updateUserStatus = async (email: string, status: UserStatus): Promise<void> => {
   const userDoc = doc(usersRef, email.toLowerCase());
   await updateDoc(userDoc, { status });
-};
-
-export const deleteUser = async (email: string): Promise<void> => {
-  const userDoc = doc(usersRef, email.toLowerCase());
-  await deleteDoc(userDoc);
-};
-
-export const deleteAction = async (actionId: string): Promise<void> => {
-  const actionDoc = doc(db, 'vibe_teen_actions', actionId);
-  await deleteDoc(actionDoc);
 };
