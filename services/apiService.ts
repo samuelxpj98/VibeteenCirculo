@@ -16,7 +16,7 @@ import {
   updateDoc,
   limit
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { CauseAction, ActionType, User, UserStatus, PrayerRequest } from '../types';
+import { CauseAction, ActionType, User, UserStatus, PrayerRequest } from '../types.ts';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAXP8095JDr1Ck1xFOoF5lCREE9VxXMUJw",

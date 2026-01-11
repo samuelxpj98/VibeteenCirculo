@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { User } from '../types';
-import { findUserByEmail, saveOrUpdateUser } from '../services/apiService';
-import { AVATAR_COLORS } from '../constants';
+import { User } from '../types.ts';
+import { findUserByEmail, saveOrUpdateUser } from '../services/apiService.ts';
+import { AVATAR_COLORS } from '../constants.tsx';
 
 interface WelcomeScreenProps {
   onComplete: (user: User) => void;

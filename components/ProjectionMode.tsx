@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { CauseAction, ActionType } from '../types';
-import { ACTION_CONFIG } from '../constants';
+import { CauseAction, ActionType } from '../types.ts';
+import { ACTION_CONFIG } from '../constants.tsx';
 
 interface ProjectionModeProps {
   actions: CauseAction[];

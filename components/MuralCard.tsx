@@ -1,7 +1,7 @@
 
 import React, { memo } from 'react';
-import { CauseAction } from '../types';
-import { ACTION_CONFIG } from '../constants';
+import { CauseAction } from '../types.ts';
+import { ACTION_CONFIG } from '../constants.tsx';
 
 interface MuralCardProps {
   action: CauseAction;

@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { ActionType } from '../types';
-import { ACTION_CONFIG } from '../constants';
+import { ActionType } from '../types.ts';
+import { ACTION_CONFIG } from '../constants.tsx';
 
 interface StatsCardProps {
   type: ActionType;

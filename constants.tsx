@@ -1,5 +1,5 @@
 
-import { ActionType } from './types';
+import { ActionType } from './types.ts';
 
 export const AVATAR_COLORS = [
   { name: 'Azul', hex: '#0084FF' },
@@ -43,4 +43,4 @@ export const ACTION_CONFIG = {
   }
 };
 
-export const API_URL = ''; 
+export const API_URL = '';

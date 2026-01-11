@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
-import { User, CauseAction, ActionType, Tab, ContentItem, UserStatus, PrayerRequest } from './types';
-import { WelcomeScreen } from './components/WelcomeScreen';
-import { MuralCard } from './components/MuralCard';
-import { StatsCard } from './components/StatsCard';
-import { RegistrationForm } from './components/RegistrationForm';
-import { ProjectionMode } from './components/ProjectionMode';
+import { User, CauseAction, ActionType, Tab, ContentItem, UserStatus, PrayerRequest } from './types.ts';
+import { WelcomeScreen } from './components/WelcomeScreen.tsx';
+import { MuralCard } from './components/MuralCard.tsx';
+import { StatsCard } from './components/StatsCard.tsx';
+import { RegistrationForm } from './components/RegistrationForm.tsx';
+import { ProjectionMode } from './components/ProjectionMode.tsx';
 import { 
   subscribeToActions, 
   registerAction, 
@@ -17,8 +17,8 @@ import {
   subscribeToPrayers,
   addPrayerRequest,
   deletePrayerRequest
-} from './services/apiService';
-import { ACTION_CONFIG, AVATAR_COLORS } from './constants';
+} from './services/apiService.ts';
+import { ACTION_CONFIG, AVATAR_COLORS } from './constants.tsx';
 
 const BIBLICAL_VERSES = {
   [ActionType.OREI]: "Orai sem cessar. (1 Tessalonicenses 5:17)",
