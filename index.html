@@ -20,20 +20,20 @@
         theme: {
           extend: {
             colors: {
-              primary: '#f9f506',
-              'primary-dark': '#e6e205',
+              primary: '#FFE600', /* Amarelo Neon Puro */
+              'primary-dark': '#E6D000',
               background: {
                 light: '#f8f8f5',
-                dark: '#0f0f0f'
+                dark: '#050505'
               },
               surface: {
                 light: '#ffffff',
-                dark: '#1a1a1a'
+                dark: '#121212'
               },
               action: {
-                blue: '#0084FF',
-                green: '#00F576',
-                orange: '#FF5E00'
+                blue: '#00F0FF',   /* Ciano Elétrico */
+                green: '#39FF14',  /* Verde Neon Radioativo */
+                orange: '#FF5E00'  /* Laranja Vivo */
               }
             },
             fontFamily: {
@@ -49,7 +49,7 @@
         background-size: 20px 20px;
       }
       .dark .bg-dot-pattern {
-        background-image: radial-gradient(#333333 1px, transparent 1px);
+        background-image: radial-gradient(#222 1px, transparent 1px);
       }
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -60,17 +60,18 @@
       }
       .animate-float { animation: float 3s ease-in-out infinite; }
       
-      .text-vibrant-blue { color: #0084FF; }
-      .text-vibrant-green { color: #00F576; }
-      .text-vibrant-orange { color: #FF5E00; }
+      /* Cores Vivas Utilitários - Forçando cores Neon */
+      .text-vibrant-blue { color: #00F0FF !important; }
+      .text-vibrant-green { color: #39FF14 !important; }
+      .text-vibrant-orange { color: #FF5E00 !important; }
       
-      .bg-vibrant-blue-soft { background-color: rgba(0, 132, 255, 0.12); }
-      .bg-vibrant-green-soft { background-color: rgba(0, 245, 118, 0.12); }
-      .bg-vibrant-orange-soft { background-color: rgba(255, 94, 0, 0.12); }
+      .bg-vibrant-blue-soft { background-color: rgba(0, 240, 255, 0.2); }
+      .bg-vibrant-green-soft { background-color: rgba(57, 255, 20, 0.2); }
+      .bg-vibrant-orange-soft { background-color: rgba(255, 94, 0, 0.2); }
       
-      .glow-blue { filter: drop-shadow(0 0 8px rgba(0, 132, 255, 0.4)); }
-      .glow-green { filter: drop-shadow(0 0 8px rgba(0, 245, 118, 0.4)); }
-      .glow-orange { filter: drop-shadow(0 0 8px rgba(255, 94, 0, 0.4)); }
+      .glow-blue { filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.6)); }
+      .glow-green { filter: drop-shadow(0 0 10px rgba(57, 255, 20, 0.6)); }
+      .glow-orange { filter: drop-shadow(0 0 10px rgba(255, 94, 0, 0.6)); }
     </style>
     
     <script type="importmap">

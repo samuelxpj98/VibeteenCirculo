@@ -12,45 +12,63 @@ interface MuralCardProps {
 export const MuralCard: React.FC<MuralCardProps> = ({ action, onClick, style }) => {
   const config = ACTION_CONFIG[action.action];
   
-  const cardWidth = 160;
-  const cardHeight = 150;
+  // As dimensões DEVEM bater com as definidas no algoritmo do App.tsx
+  const width = 140;
+  const height = 160; 
   
   const day = new Date(action.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
+  // Polígono Hexagonal (Ponta para cima)
+  // Ajuste sutil: 0.5px de inset visualmente evita linhas brancas (anti-aliasing) entre cards
+  const hexClipPath = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
+
   return (
-    <button 
-      onClick={() => onClick(action)}
+    <div
       style={{
         ...style,
-        width: `${cardWidth}px`,
-        height: `${cardHeight}px`,
-        willChange: 'transform'
+        width: `${width}px`,
+        height: `${height}px`,
+        willChange: 'transform',
+        filter: 'drop-shadow(0px 0px 5px rgba(0,0,0,0.5))' // Sombra ajustada para o favo
       }}
-      className={`relative flex flex-col items-center justify-center rounded-[40px] border-2 border-white/50 dark:border-white/5 shadow-2xl ${config.lightBg} ${config.darkBg} transition-all active:scale-90 group shrink-0 overflow-hidden p-6`}
+      className="relative flex items-center justify-center group shrink-0 transition-transform duration-300 hover:scale-110 hover:z-50 cursor-pointer"
+      onClick={() => onClick(action)}
     >
-      {/* 1. ÍCONE ACIMA */}
-      <div className={`size-11 rounded-[16px] flex-shrink-0 flex items-center justify-center ${config.textColor} bg-white/90 dark:bg-black/40 shadow-inner mb-3 group-hover:scale-110 transition-transform`}>
-        <span className="material-symbols-outlined text-2xl font-black">{config.icon}</span>
+      {/* Camada da Borda (Fundo externo - Grout) */}
+      <div 
+        className="absolute inset-0 bg-white dark:bg-zinc-800"
+        style={{ clipPath: hexClipPath }}
+      ></div>
+
+      {/* Camada de Conteúdo (Inset 3px para simular borda visível entre os favos) */}
+      <div 
+        className={`absolute inset-[3px] ${config.lightBg} ${config.darkBg} flex flex-col items-center justify-center p-3 text-center transition-colors`}
+        style={{ clipPath: hexClipPath }}
+      >
+        {/* Efeito de brilho no hover */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+
+        {/* 1. ÍCONE */}
+        <div className={`size-8 rounded-full flex-shrink-0 flex items-center justify-center ${config.textColor} bg-white/90 dark:bg-black/40 shadow-inner mb-1 group-hover:scale-110 transition-transform mt-1`}>
+          <span className="material-symbols-outlined text-lg font-black">{config.icon}</span>
+        </div>
+        
+        {/* 2. NOME (Aumentado e Ajustado) */}
+        <p className="text-[17px] font-black uppercase tracking-tighter text-zinc-900 dark:text-zinc-100 truncate w-[95%] italic leading-none mb-0.5">
+          {action.userName}
+        </p>
+
+        {/* 3. DATA */}
+        <div className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest italic opacity-80 mb-2">
+          {day}
+        </div>
+
+        {/* Indicador de Cor do Usuário */}
+        {action.userColor && (
+          <div className="absolute bottom-3 size-1.5 rounded-full shadow-sm ring-1 ring-black/20" style={{ backgroundColor: action.userColor }}></div>
+        )}
       </div>
-      
-      {/* 2. NOME NO MEIO (18px - Igual JESUS) */}
-      <p className="text-[18px] font-black uppercase tracking-tighter text-zinc-900 dark:text-zinc-100 truncate w-full text-center italic leading-none mb-2">
-        {action.userName}
-      </p>
-
-      {/* 3. DATA EMBAIXO */}
-      <div className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest italic opacity-80">
-        {day}
-      </div>
-
-      {/* Indicador de Cor do Usuário */}
-      {action.userColor && (
-        <div className="absolute top-4 right-4 size-2 rounded-full shadow-sm ring-2 ring-white/50" style={{ backgroundColor: action.userColor }}></div>
-      )}
-
-      {/* Overlay de Hover */}
-      <div className={`absolute inset-0 rounded-[40px] ring-4 ring-inset ring-primary opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none`}></div>
-    </button>
+    </div>
   );
 };
 

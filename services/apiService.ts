@@ -16,7 +16,7 @@ import {
   updateDoc,
   limit
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { CauseAction, ActionType, User, UserStatus } from '../types';
+import { CauseAction, ActionType, User, UserStatus, PrayerRequest } from '../types';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAXP8095JDr1Ck1xFOoF5lCREE9VxXMUJw",
@@ -32,6 +32,7 @@ const db = getFirestore(app);
 
 const actionsRef = collection(db, 'vibe_teen_actions');
 const usersRef = collection(db, 'vibe_teen_users');
+const prayersRef = collection(db, 'vibe_teen_prayers');
 
 export const subscribeToActions = (callback: (actions: CauseAction[]) => void) => {
   const q = query(actionsRef, orderBy('timestamp', 'desc'), limit(200));
@@ -62,13 +63,18 @@ export const deleteAction = async (actionId: string): Promise<void> => {
 };
 
 export const saveOrUpdateUser = async (user: User): Promise<void> => {
+  // Se for visitante, não salva no banco necessariamente, ou salva com ID específico
+  if (user.isGuest) return;
+
   const userDoc = doc(usersRef, user.email.toLowerCase());
   await setDoc(userDoc, {
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email.toLowerCase(),
     avatarColor: user.avatarColor,
-    status: user.status || 'Visitante'
+    status: user.status || 'Membro',
+    church: user.church || 'Vibe',
+    pin: user.pin || '' 
   }, { merge: true });
 };
 
@@ -99,4 +105,26 @@ export const getAllUsers = async (): Promise<User[]> => {
 export const updateUserStatus = async (email: string, status: UserStatus): Promise<void> => {
   const userDoc = doc(usersRef, email.toLowerCase());
   await updateDoc(userDoc, { status });
+};
+
+// --- PRAYER REQUESTS ---
+
+export const subscribeToPrayers = (callback: (prayers: PrayerRequest[]) => void) => {
+  const q = query(prayersRef, orderBy('timestamp', 'desc'), limit(100));
+  return onSnapshot(q, (snapshot) => {
+    const prayers = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as PrayerRequest[];
+    callback(prayers);
+  });
+};
+
+export const addPrayerRequest = async (data: Omit<PrayerRequest, 'id'>): Promise<void> => {
+  await addDoc(prayersRef, data);
+};
+
+export const deletePrayerRequest = async (id: string): Promise<void> => {
+  const docRef = doc(db, 'vibe_teen_prayers', id);
+  await deleteDoc(docRef);
 };

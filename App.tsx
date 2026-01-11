@@ -1,12 +1,23 @@
 
 import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
-import { User, CauseAction, ActionType, Tab, ContentItem, UserStatus } from './types';
+import { User, CauseAction, ActionType, Tab, ContentItem, UserStatus, PrayerRequest } from './types';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { MuralCard } from './components/MuralCard';
 import { StatsCard } from './components/StatsCard';
 import { RegistrationForm } from './components/RegistrationForm';
 import { ProjectionMode } from './components/ProjectionMode';
-import { subscribeToActions, registerAction, getAllUsers, updateUserStatus, updateUserDetails, deleteAction, deleteUser } from './services/apiService';
+import { 
+  subscribeToActions, 
+  registerAction, 
+  getAllUsers, 
+  updateUserStatus, 
+  updateUserDetails, 
+  deleteAction, 
+  deleteUser,
+  subscribeToPrayers,
+  addPrayerRequest,
+  deletePrayerRequest
+} from './services/apiService';
 import { ACTION_CONFIG, AVATAR_COLORS } from './constants';
 
 const BIBLICAL_VERSES = {
@@ -15,16 +26,41 @@ const BIBLICAL_VERSES = {
   [ActionType.COMPARTILHEI]: "Ide e pregai o gospel a toda criatura. (Marcos 16:15)"
 };
 
-const getSpiralCoords = (n: number, cellSize: number) => {
-  let x = 0, y = 0, dx = 0, dy = -1;
-  const coords = [];
-  for (let i = 0; i < n; i++) {
-    coords.push({ x: x * cellSize, y: y * cellSize });
-    if (x === y || (x < 0 && x === -y) || (x > 0 && x === 1 - y)) {
-      [dx, dy] = [-dy, dx];
+// --- ALGORITMO FAVO DE MEL (HEXAGONAL SPIRAL) ---
+const getHoneycombCoords = (count: number, hexWidth: number, hexHeight: number) => {
+  const coords = [{ x: 0, y: 0 }]; // Centro
+  if (count <= 1) return coords;
+
+  const directions = [
+    { q: 0, r: -1 },
+    { q: 1, r: -1 },
+    { q: 1, r: 0 },
+    { q: 0, r: 1 },
+    { q: -1, r: 1 },
+    { q: -1, r: 0 },
+  ];
+
+  let q = 0;
+  let r = 0;
+  let radius = 0;
+
+  while (coords.length < count) {
+    radius++;
+    q = -1 * radius; 
+    r = 1 * radius; 
+    let curQ = directions[4].q * radius;
+    let curR = directions[4].r * radius;
+
+    for (let i = 0; i < 6; i++) {
+      for (let j = 0; j < radius; j++) {
+        const x = (curQ + curR / 2) * (hexWidth * 1.02);
+        const y = curR * (hexHeight * 0.76);
+        coords.push({ x, y });
+        if (coords.length >= count) return coords;
+        curQ += directions[i].q;
+        curR += directions[i].r;
+      }
     }
-    x += dx;
-    y += dy;
   }
   return coords;
 };
@@ -46,10 +82,15 @@ const OptimizedMuralCard = memo(MuralCard);
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [actions, setActions] = useState<CauseAction[]>([]);
+  const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
   const [currentTab, setCurrentTab] = useState<Tab>('mural');
   const [submitting, setSubmitting] = useState(false);
   const [selectedAction, setSelectedAction] = useState<CauseAction | null>(null);
   
+  // Prayer State
+  const [newPrayerText, setNewPrayerText] = useState('');
+  const [isSubmittingPrayer, setIsSubmittingPrayer] = useState(false);
+
   // Mural State
   const [zoom, setZoom] = useState(0.8);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -84,11 +125,19 @@ const App: React.FC = () => {
       setEditColor(parsed.avatarColor);
     }
     
-    const unsubscribe = subscribeToActions((newActions) => {
+    const unsubscribeActions = subscribeToActions((newActions) => {
       setActions(newActions);
       setSyncing(false);
     });
-    return () => unsubscribe();
+
+    const unsubscribePrayers = subscribeToPrayers((newPrayers) => {
+      setPrayers(newPrayers);
+    });
+
+    return () => {
+      unsubscribeActions();
+      unsubscribePrayers();
+    };
   }, []);
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -121,12 +170,25 @@ const App: React.FC = () => {
     localStorage.setItem('causa_user', JSON.stringify(newUser));
   };
 
+  const handleAddClick = () => {
+    if (user?.isGuest) {
+      if (confirm('Modo Visitante: Você precisa criar uma conta para registrar suas ações e aparecer no mural. Deseja criar agora?')) {
+        localStorage.removeItem('causa_user');
+        window.location.reload();
+      }
+    } else {
+      setCurrentTab('register');
+    }
+  };
+
   const handleRegister = async (friendName: string, actionType: ActionType) => {
     if (!user) return;
     setSubmitting(true);
     try {
+      const displayName = `${user.firstName} ${user.lastName ? user.lastName.charAt(0) + '.' : ''}`;
+      
       await registerAction({ 
-        userName: user.firstName, 
+        userName: displayName, 
         friendName, 
         action: actionType,
         userColor: user.avatarColor 
@@ -137,6 +199,42 @@ const App: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmitPrayer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !newPrayerText.trim()) return;
+    
+    if (user.isGuest) {
+        alert("Visitantes não podem enviar pedidos de oração. Crie uma conta!");
+        return;
+    }
+
+    setIsSubmittingPrayer(true);
+    try {
+        const displayName = `${user.firstName} ${user.lastName ? user.lastName.charAt(0) + '.' : ''}`;
+        await addPrayerRequest({
+            userId: user.email,
+            userName: displayName,
+            content: newPrayerText,
+            timestamp: new Date().toISOString(),
+            userColor: user.avatarColor
+        });
+        setNewPrayerText('');
+    } catch (err) {
+        alert("Erro ao enviar oração.");
+    } finally {
+        setIsSubmittingPrayer(false);
+    }
+  };
+
+  const handleDeletePrayer = async (prayerId: string, prayerUserId: string) => {
+      if (!user) return;
+      if (user.email === prayerUserId || user.status === 'Líder') {
+          if(confirm("Remover este pedido de oração?")) {
+              await deletePrayerRequest(prayerId);
+          }
+      }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -234,13 +332,17 @@ const App: React.FC = () => {
   const myStats = useMemo(() => {
     if (!user) return { [ActionType.OREI]: 0, [ActionType.CUIDEI]: 0, [ActionType.COMPARTILHEI]: 0 };
     return {
-      [ActionType.OREI]: actions.filter(a => a.userName === user.firstName && a.action === ActionType.OREI).length,
-      [ActionType.CUIDEI]: actions.filter(a => a.userName === user.firstName && a.action === ActionType.CUIDEI).length,
-      [ActionType.COMPARTILHEI]: actions.filter(a => a.userName === user.firstName && a.action === ActionType.COMPARTILHEI).length,
+      [ActionType.OREI]: actions.filter(a => a.userName.includes(user.firstName) && a.action === ActionType.OREI).length,
+      [ActionType.CUIDEI]: actions.filter(a => a.userName.includes(user.firstName) && a.action === ActionType.CUIDEI).length,
+      [ActionType.COMPARTILHEI]: actions.filter(a => a.userName.includes(user.firstName) && a.action === ActionType.COMPARTILHEI).length,
     };
   }, [actions, user]);
 
-  const spiralCoords = useMemo(() => getSpiralCoords(actions.length + 1, 180), [actions.length]);
+  const HEX_WIDTH = 140;
+  const HEX_HEIGHT = 160;
+  
+  const honeycombCoords = useMemo(() => getHoneycombCoords(actions.length + 1, HEX_WIDTH, HEX_HEIGHT), [actions.length]);
+  const hexClipPath = 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)';
 
   if (!user) return <WelcomeScreen onComplete={handleWelcomeComplete} />;
   if (showProjection) return <ProjectionMode actions={actions} onClose={() => setShowProjection(false)} />;
@@ -249,18 +351,16 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col max-w-md mx-auto relative bg-background-light dark:bg-background-dark text-zinc-900 dark:text-white pb-24 overflow-hidden">
       <div className="fixed inset-0 z-0 opacity-40 pointer-events-none bg-dot-pattern"></div>
 
+      {/* HEADER: Removido Ícone Infinito, Centralizado Nome */}
       <header className="relative z-[60] p-4 pt-6 sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md flex items-center justify-between border-b border-black/5 dark:border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[14px] bg-primary flex items-center justify-center text-black shadow-lg shadow-primary/40 rotate-3">
-            <span className="material-symbols-outlined text-[24px] font-black">all_inclusive</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-black tracking-tighter uppercase leading-none italic">VIBE TEEN</h1>
+        <div className="flex-1 flex flex-col items-center">
+            <h1 className="text-2xl font-black tracking-tighter uppercase leading-none italic text-center">
+              VIBE <span className="text-primary-dark dark:text-primary">TEEN</span>
+            </h1>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className={`size-1.5 rounded-full ${syncing ? 'bg-yellow-400 animate-pulse' : 'bg-green-500'}`}></span>
-              <span className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest italic">{syncing ? 'Sync...' : 'Online'}</span>
+              <span className={`size-1.5 rounded-full ${syncing ? 'bg-yellow-400 animate-pulse' : 'bg-action-green shadow-[0_0_5px_rgba(57,255,20,0.8)]'}`}></span>
+              <span className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest italic">{user.isGuest ? 'Visitante' : (syncing ? 'Sync...' : 'Online')}</span>
             </div>
-          </div>
         </div>
       </header>
 
@@ -268,7 +368,7 @@ const App: React.FC = () => {
         {currentTab === 'mural' && (
           <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in relative">
             <div className="absolute top-6 left-0 w-full z-50 pointer-events-none text-center px-4">
-              <h2 className="text-3xl font-black bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent uppercase tracking-tighter italic leading-none">Círculo da Causa</h2>
+              <h2 className="text-3xl font-black bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent uppercase tracking-tighter italic leading-none drop-shadow-sm">Círculo da Causa</h2>
               <p className="text-zinc-500 text-[10px] font-black italic uppercase tracking-[0.2em] mt-1">Vibe Teen em Movimento</p>
             </div>
 
@@ -284,13 +384,27 @@ const App: React.FC = () => {
                 className="absolute inset-0 flex items-center justify-center transition-transform duration-75 ease-out"
                 style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }}
               >
-                <div style={{ position: 'absolute', transform: `translate(${spiralCoords[0]?.x || 0}px, ${spiralCoords[0]?.y || 0}px)`, zIndex: 200 }} className="size-40 flex flex-col items-center justify-center rounded-[48px] bg-primary text-black shadow-2xl border-8 border-white dark:border-zinc-800 scale-110 active:scale-95 transition-all">
-                  <span className="material-symbols-outlined text-6xl mb-1 font-fill" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-                  <p className="text-[18px] font-black uppercase tracking-widest italic">JESUS</p>
+                {/* CARTÃO CENTRAL VIBE TEEN - SEM ÍCONE, NOME GIGANTE */}
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    transform: `translate(${honeycombCoords[0]?.x || 0}px, ${honeycombCoords[0]?.y || 0}px)`, 
+                    zIndex: 200,
+                    width: `${HEX_WIDTH}px`,
+                    height: `${HEX_HEIGHT}px`,
+                    filter: 'drop-shadow(0 0 35px rgba(255,230,0,0.6))'
+                  }} 
+                  className="flex flex-col items-center justify-center transition-all hover:scale-110 group"
+                >
+                   <div className="absolute inset-0 bg-white dark:bg-zinc-800" style={{ clipPath: hexClipPath }}></div>
+                   <div className="absolute inset-[3px] bg-primary flex flex-col items-center justify-center text-black" style={{ clipPath: hexClipPath }}>
+                      <p className="text-[32px] font-black uppercase tracking-tighter italic leading-[0.85]">VIBE</p>
+                      <p className="text-[32px] font-black uppercase tracking-tighter italic leading-[0.85]">TEEN</p>
+                   </div>
                 </div>
 
                 {actions.map((action, index) => {
-                  const coord = spiralCoords[index + 1] || { x: 0, y: 0 };
+                  const coord = honeycombCoords[index + 1] || { x: 0, y: 0 };
                   return (
                     <OptimizedMuralCard 
                       key={action.id} 
@@ -316,99 +430,170 @@ const App: React.FC = () => {
         {currentTab === 'rank' && (
           <div className="animate-in fade-in p-4 overflow-y-auto no-scrollbar space-y-6 pb-20">
             <div className="pt-2 mb-4 text-center">
-              <h2 className="text-4xl font-black tracking-tighter uppercase italic leading-none">Nosso <span className="text-yellow-600 dark:text-primary">Legado</span></h2>
+              <h2 className="text-4xl font-black tracking-tighter uppercase italic leading-none">Nosso <span className="text-yellow-500 dark:text-primary drop-shadow-[0_0_10px_rgba(255,230,0,0.5)]">Legado</span></h2>
             </div>
+            
             <div className="flex flex-col gap-6">
               <StatsCard type={ActionType.OREI} count={globalStats[ActionType.OREI].total} todayCount={globalStats[ActionType.OREI].today} />
               <StatsCard type={ActionType.CUIDEI} count={globalStats[ActionType.CUIDEI].total} todayCount={globalStats[ActionType.CUIDEI].today} />
               <StatsCard type={ActionType.COMPARTILHEI} count={globalStats[ActionType.COMPARTILHEI].total} todayCount={globalStats[ActionType.COMPARTILHEI].today} />
             </div>
+
+            {/* SEÇÃO PEDIDOS DE ORAÇÃO */}
+            <div className="mt-8">
+                <div className="flex items-center gap-3 mb-4">
+                     <div className="size-10 rounded-full bg-blue-500/20 flex items-center justify-center text-action-blue glow-blue">
+                         <span className="material-symbols-outlined font-black">campaign</span>
+                     </div>
+                     <h3 className="text-xl font-black uppercase italic tracking-tighter text-zinc-600 dark:text-zinc-300">Pedidos de Oração</h3>
+                </div>
+                
+                {/* Form de Oração */}
+                <form onSubmit={handleSubmitPrayer} className="mb-6 relative">
+                    <input 
+                        type="text" 
+                        value={newPrayerText}
+                        onChange={(e) => setNewPrayerText(e.target.value)}
+                        placeholder="Deixe seu pedido aqui..."
+                        className="w-full h-14 pl-6 pr-14 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-white/10 focus:border-action-blue outline-none shadow-sm font-bold text-sm"
+                    />
+                    <button 
+                        type="submit" 
+                        disabled={!newPrayerText.trim() || isSubmittingPrayer}
+                        className="absolute right-2 top-2 size-10 bg-action-blue text-black rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-transform disabled:opacity-50 font-black"
+                    >
+                        <span className="material-symbols-outlined">send</span>
+                    </button>
+                </form>
+
+                {/* Lista de Orações */}
+                <div className="flex flex-col gap-3">
+                    {prayers.length === 0 && <p className="text-center text-zinc-400 text-[10px] font-black uppercase italic py-4">Nenhum pedido recente.</p>}
+                    
+                    {prayers.map(prayer => (
+                        <div key={prayer.id} className="p-4 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-white/5 shadow-sm flex gap-3 relative animate-in slide-in-from-bottom-2">
+                             <div className="shrink-0 size-10 rounded-full flex items-center justify-center text-white text-sm font-black shadow-sm" style={{ backgroundColor: prayer.userColor }}>
+                                 {prayer.userName.charAt(0)}
+                             </div>
+                             <div className="flex-1">
+                                 <div className="flex justify-between items-start">
+                                     <p className="text-[11px] font-black uppercase tracking-wide italic text-zinc-500 dark:text-zinc-400 mb-1">{prayer.userName}</p>
+                                     <p className="text-[8px] font-bold text-zinc-300 dark:text-zinc-600">{formatDate(prayer.timestamp)}</p>
+                                 </div>
+                                 <p className="text-sm font-bold leading-tight text-zinc-800 dark:text-zinc-200">"{prayer.content}"</p>
+                             </div>
+                             {(user.email === prayer.userId || user.status === 'Líder') && (
+                                 <button 
+                                    onClick={() => handleDeletePrayer(prayer.id, prayer.userId)}
+                                    className="absolute -top-2 -right-2 size-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md active:scale-75 transition-transform"
+                                 >
+                                     <span className="material-symbols-outlined text-[14px]">close</span>
+                                 </button>
+                             )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
           </div>
         )}
 
+        {/* ... Rest of tabs (profile, register) remains the same ... */}
         {currentTab === 'profile' && (
           <div className="animate-in fade-in p-4 overflow-y-auto no-scrollbar pb-10">
             <div className="flex flex-col items-center pt-8 pb-10 mb-8 bg-white dark:bg-zinc-900 rounded-[48px] border border-zinc-100 dark:border-white/5 shadow-2xl relative overflow-hidden text-center">
               <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/20 to-transparent"></div>
               <div className="relative mb-6">
                 <div className="w-32 h-32 rounded-[32px] border-4 border-white dark:border-zinc-800 flex items-center justify-center text-white text-4xl font-black shadow-2xl mx-auto rotate-2 transition-transform hover:rotate-0" style={{ backgroundColor: user.avatarColor }}>
-                  {user.firstName[0]}{user.lastName[0]}
+                  {user.firstName[0]}{user.lastName[0] || 'V'}
                 </div>
-                <div className={`absolute -bottom-2 -right-2 ${user.status === 'Líder' ? 'bg-orange-500' : user.status === 'Membro' ? 'bg-blue-500' : 'bg-primary'} text-black size-10 rounded-2xl flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-800`}>
-                  <span className="material-symbols-outlined text-[20px] font-black">{user.status === 'Líder' ? 'star' : user.status === 'Membro' ? 'verified' : 'person'}</span>
+                <div className={`absolute -bottom-2 -right-2 ${user.status === 'Líder' ? 'bg-orange-500' : user.status === 'Membro' ? 'bg-action-blue' : 'bg-primary'} text-black size-10 rounded-2xl flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-800`}>
+                  <span className="material-symbols-outlined text-[20px] font-black">{user.status === 'Líder' ? 'star' : user.status === 'Membro' ? 'verified' : user.isGuest ? 'visibility' : 'person'}</span>
                 </div>
               </div>
               <h2 className="text-3xl font-black tracking-tighter uppercase italic leading-none">{user.firstName} {user.lastName}</h2>
               <div className="flex flex-col items-center gap-2 mt-4">
                 <div className="px-4 py-1.5 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center gap-2">
-                  <span className="material-symbols-outlined text-xs text-zinc-400">verified_user</span>
-                  <p className="text-zinc-600 dark:text-zinc-300 font-black uppercase text-[10px] tracking-[0.2em] italic">{user.status || 'Visitante'}</p>
+                  <span className="material-symbols-outlined text-xs text-zinc-400">church</span>
+                  <p className="text-zinc-600 dark:text-zinc-300 font-black uppercase text-[10px] tracking-[0.2em] italic">{user.church || 'Visitante'}</p>
                 </div>
               </div>
             </div>
-
-            <div className="mb-8 space-y-4">
-              <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-4 italic">Minha Atuação</h3>
-              {(Object.keys(ACTION_CONFIG) as ActionType[]).map(type => (
-                <div key={type} className="p-5 bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-100 dark:border-white/5 shadow-sm flex gap-4 items-center active:scale-95 transition-all">
-                  <div className={`size-14 rounded-[20px] flex-shrink-0 flex items-center justify-center ${ACTION_CONFIG[type].lightBg} ${ACTION_CONFIG[type].darkBg} ${ACTION_CONFIG[type].textColor}`}>
-                    <span className="material-symbols-outlined text-3xl">{ACTION_CONFIG[type].icon}</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center">
-                      <span className="font-black text-lg tracking-tight uppercase italic">{ACTION_CONFIG[type].label}</span>
-                      <span className={`${ACTION_CONFIG[type].textColor} font-black text-2xl`}>{myStats[type]}</span>
+            
+            {!user.isGuest ? (
+              <>
+                <div className="mb-8 space-y-4">
+                  <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] px-4 italic">Minha Atuação</h3>
+                  {(Object.keys(ACTION_CONFIG) as ActionType[]).map(type => (
+                    <div key={type} className="p-5 bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-100 dark:border-white/5 shadow-sm flex gap-4 items-center active:scale-95 transition-all">
+                      <div className={`size-14 rounded-[20px] flex-shrink-0 flex items-center justify-center ${ACTION_CONFIG[type].lightBg} ${ACTION_CONFIG[type].darkBg} ${ACTION_CONFIG[type].textColor}`}>
+                        <span className="material-symbols-outlined text-3xl">{ACTION_CONFIG[type].icon}</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center">
+                          <span className="font-black text-lg tracking-tight uppercase italic">{ACTION_CONFIG[type].label}</span>
+                          <span className={`${ACTION_CONFIG[type].textColor} font-black text-2xl`}>{myStats[type]}</span>
+                        </div>
+                      </div>
                     </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 mb-8">
+                  <button 
+                    onClick={() => setIsEditingProfile(true)}
+                    className="w-full flex items-center p-6 bg-white dark:bg-zinc-900 rounded-[32px] gap-4 border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform shadow-lg"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary-dark"><span className="material-symbols-outlined">palette</span></div>
+                    <div className="flex-1 text-left font-black text-xs uppercase tracking-widest italic leading-none">Mudar Estilo</div>
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <button 
+                      onClick={() => setShowProjection(true)}
+                      className="flex items-center p-6 bg-primary text-black rounded-[32px] gap-4 shadow-lg active:scale-95 transition-transform hover:brightness-110"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-black/10 flex items-center justify-center"><span className="material-symbols-outlined">tv</span></div>
+                      <div className="flex-1 text-left font-black text-[10px] uppercase tracking-widest italic leading-none">Modo TV</div>
+                    </button>
+
+                    <button 
+                      onClick={() => setShowPasswordModal(true)}
+                      className="flex items-center p-6 bg-zinc-900 dark:bg-zinc-800 text-white rounded-[32px] gap-4 border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform shadow-lg"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white"><span className="material-symbols-outlined">admin_panel_settings</span></div>
+                      <div className="flex-1 text-left font-black text-[10px] uppercase tracking-widest italic leading-none">ADM</div>
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+               <div className="p-8 bg-zinc-100 dark:bg-zinc-800/50 rounded-[32px] text-center mb-8 border border-zinc-200 dark:border-white/5">
+                 <span className="material-symbols-outlined text-4xl mb-4 text-zinc-400">lock</span>
+                 <p className="text-zinc-500 font-bold text-sm mb-6">Visitantes podem visualizar o mural, mas precisam de uma conta para interagir e salvar progresso.</p>
+                 <button 
+                    onClick={() => { localStorage.removeItem('causa_user'); window.location.reload(); }}
+                    className="w-full h-14 bg-primary text-black font-black uppercase tracking-widest rounded-2xl"
+                 >
+                   Criar Conta Agora
+                 </button>
+               </div>
+            )}
 
-            <div className="grid grid-cols-1 gap-4 mb-8">
-              <button 
-                onClick={() => setIsEditingProfile(true)}
-                className="w-full flex items-center p-6 bg-white dark:bg-zinc-900 rounded-[32px] gap-4 border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform shadow-lg"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary-dark"><span className="material-symbols-outlined">palette</span></div>
-                <div className="flex-1 text-left font-black text-xs uppercase tracking-widest italic leading-none">Mudar Estilo</div>
-              </button>
-
-              <div className="grid grid-cols-2 gap-4">
-                <button 
-                  onClick={() => setShowProjection(true)}
-                  className="flex items-center p-6 bg-primary text-black rounded-[32px] gap-4 shadow-lg active:scale-95 transition-transform"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-black/10 flex items-center justify-center"><span className="material-symbols-outlined">tv</span></div>
-                  <div className="flex-1 text-left font-black text-[10px] uppercase tracking-widest italic leading-none">Modo TV</div>
-                </button>
-
-                <button 
-                  onClick={() => setShowPasswordModal(true)}
-                  className="flex items-center p-6 bg-zinc-900 dark:bg-zinc-800 text-white rounded-[32px] gap-4 border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform shadow-lg"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white"><span className="material-symbols-outlined">admin_panel_settings</span></div>
-                  <div className="flex-1 text-left font-black text-[10px] uppercase tracking-widest italic leading-none">ADM</div>
-                </button>
-              </div>
-
-              <button 
-                onClick={() => { if(confirm('Sair da conta?')) { localStorage.removeItem('causa_user'); window.location.reload(); } }} 
-                className="w-full flex items-center p-6 bg-red-50 dark:bg-red-500/10 rounded-[32px] gap-4 text-red-600 border border-red-100 dark:border-red-500/20 active:scale-95 transition-transform shadow-lg"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-500/20 flex items-center justify-center"><span className="material-symbols-outlined">logout</span></div>
-                <div className="flex-1 text-left font-black text-xs uppercase tracking-widest italic leading-none">Desconectar</div>
-              </button>
-            </div>
+            <button 
+              onClick={() => { if(confirm('Sair da conta?')) { localStorage.removeItem('causa_user'); window.location.reload(); } }} 
+              className="w-full flex items-center p-6 bg-red-50 dark:bg-red-500/10 rounded-[32px] gap-4 text-red-600 border border-red-100 dark:border-red-500/20 active:scale-95 transition-transform shadow-lg"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-500/20 flex items-center justify-center"><span className="material-symbols-outlined">logout</span></div>
+              <div className="flex-1 text-left font-black text-xs uppercase tracking-widest italic leading-none">Desconectar</div>
+            </button>
           </div>
         )}
 
         {currentTab === 'register' && <RegistrationForm onRegister={handleRegister} onCancel={() => setCurrentTab('mural')} isSubmitting={submitting} />}
       </main>
 
-      {/* Rest of the modals (Password, Edit Profile, Admin Panel) remain exactly the same as before */}
-      {/* ... (omitidos por brevidade mas permanecem no código final) */}
-      
-      {/* MODAL DE SENHA CUSTOMIZADO */}
+      {/* Modals remain the same... */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in">
           <div className="w-full max-w-xs bg-white dark:bg-zinc-900 rounded-[40px] p-8 shadow-2xl border border-white/10 flex flex-col items-center">
@@ -436,7 +621,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL EDITAR PERFIL */}
       {isEditingProfile && (
         <div className="fixed inset-0 z-[200] bg-background-light dark:bg-background-dark overflow-y-auto animate-in slide-in-from-bottom-10 p-6">
            <header className="flex items-center justify-between mb-8 pt-6">
@@ -589,9 +773,10 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Button & Nav & Selected Action Overlay remains consistent... */}
       {currentTab !== 'register' && !showAdminPanel && !isEditingProfile && !showPasswordModal && (
-        <button onClick={() => setCurrentTab('register')} className="fixed bottom-28 right-6 w-16 h-16 rounded-[24px] bg-primary text-black shadow-2xl flex items-center justify-center z-50 animate-float active:scale-90 transition-all border-4 border-white dark:border-zinc-800">
-          <span className="material-symbols-outlined text-3xl font-black">add</span>
+        <button onClick={handleAddClick} className={`fixed bottom-28 right-6 w-16 h-16 rounded-[24px] ${user.isGuest ? 'bg-zinc-800 text-zinc-500' : 'bg-primary text-black'} shadow-2xl flex items-center justify-center z-50 animate-float active:scale-90 transition-all border-4 border-white dark:border-zinc-800`}>
+          <span className="material-symbols-outlined text-3xl font-black">{user.isGuest ? 'lock' : 'add'}</span>
         </button>
       )}
 

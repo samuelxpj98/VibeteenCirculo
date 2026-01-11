@@ -12,9 +12,11 @@ export interface User {
   lastName: string;
   email: string;
   avatarColor: string;
-  church?: string;
+  church?: 'Vibe' | 'Outra Igreja';
   role?: 'user' | 'admin';
-  status?: UserStatus; // Novo campo para o título de verificado
+  status?: UserStatus;
+  pin?: string;
+  isGuest?: boolean;
 }
 
 export interface CauseAction {
@@ -24,6 +26,15 @@ export interface CauseAction {
   action: ActionType;
   timestamp: string;
   userColor?: string;
+}
+
+export interface PrayerRequest {
+  id: string;
+  userId: string; // email ou id unico
+  userName: string;
+  content: string;
+  timestamp: string;
+  userColor: string;
 }
 
 export interface ContentItem {

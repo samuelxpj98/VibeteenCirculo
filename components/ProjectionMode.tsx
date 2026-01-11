@@ -94,19 +94,14 @@ export const ProjectionMode: React.FC<ProjectionModeProps> = ({ actions, onClose
       {/* Background Animated Elements */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] size-[800px] bg-primary/10 blur-[150px] rounded-full animate-pulse"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] size-[800px] bg-blue-500/5 blur-[150px] rounded-full animate-pulse" style={{ animationDelay: '3s' }}></div>
+        <div className="absolute bottom-[-10%] right-[-10%] size-[800px] bg-action-blue/10 blur-[150px] rounded-full animate-pulse" style={{ animationDelay: '3s' }}></div>
       </div>
 
-      {/* Header Fixo */}
+      {/* Header Fixo - Sem ícone, apenas nome */}
       <header className="absolute top-12 left-12 right-12 flex items-center justify-between z-50">
-        <div className="flex items-center gap-6">
-          <div className="size-20 rounded-3xl bg-primary flex items-center justify-center text-black shadow-2xl rotate-3">
-            <span className="material-symbols-outlined text-5xl font-black">all_inclusive</span>
-          </div>
-          <div>
+        <div className="flex flex-col">
             <h2 className="text-5xl font-black tracking-tighter italic uppercase leading-none">VIBE TEEN</h2>
             <p className="text-primary font-black uppercase tracking-[0.5em] text-sm mt-2">Círculo da Causa • Modo Celebração</p>
-          </div>
         </div>
         <div className="flex gap-4">
           <button 
@@ -130,7 +125,7 @@ export const ProjectionMode: React.FC<ProjectionModeProps> = ({ actions, onClose
         {slide.type === 'stats' && (
           <div className="w-full grid grid-cols-3 gap-16 animate-in slide-in-from-bottom-20 fade-in duration-1000">
              <div className="flex flex-col items-center p-16 bg-white/5 rounded-[80px] border border-white/10 backdrop-blur-sm">
-                <span className="material-symbols-outlined text-8xl text-blue-400 mb-8">volunteer_activism</span>
+                <span className="material-symbols-outlined text-8xl text-action-blue mb-8">volunteer_activism</span>
                 <span className="text-[10rem] font-black italic tracking-tighter leading-none">{slide.data.orei}</span>
                 <span className="text-2xl font-black uppercase tracking-[0.4em] text-zinc-500 mt-6">Orações Realizadas</span>
              </div>
@@ -140,7 +135,7 @@ export const ProjectionMode: React.FC<ProjectionModeProps> = ({ actions, onClose
                 <span className="text-2xl font-black uppercase tracking-[0.4em] text-primary mt-6">Vidas Cuidadas</span>
              </div>
              <div className="flex flex-col items-center p-16 bg-white/5 rounded-[80px] border border-white/10 backdrop-blur-sm">
-                <span className="material-symbols-outlined text-8xl text-orange-500 mb-8">share</span>
+                <span className="material-symbols-outlined text-8xl text-action-orange mb-8">share</span>
                 <span className="text-[10rem] font-black italic tracking-tighter leading-none">{slide.data.compartilhei}</span>
                 <span className="text-2xl font-black uppercase tracking-[0.4em] text-zinc-500 mt-6">Fé Compartilhada</span>
              </div>
@@ -200,11 +195,11 @@ export const ProjectionMode: React.FC<ProjectionModeProps> = ({ actions, onClose
         {/* Slide: Versículos */}
         {slide.type === 'verse' && (
           <div className="max-w-4xl text-center animate-in fade-in slide-in-from-top-20 duration-1000">
-            <span className="material-symbols-outlined text-blue-400 text-9xl mb-12 opacity-40">menu_book</span>
+            <span className="material-symbols-outlined text-action-blue text-9xl mb-12 opacity-40">menu_book</span>
             <h2 className="text-6xl font-black italic leading-tight uppercase tracking-tighter mb-12 bg-gradient-to-r from-white to-zinc-500 bg-clip-text text-transparent">
               {slide.data.text}
             </h2>
-            <p className="text-4xl font-black text-blue-400 uppercase tracking-[0.3em] italic">{slide.data.ref}</p>
+            <p className="text-4xl font-black text-action-blue uppercase tracking-[0.3em] italic">{slide.data.ref}</p>
           </div>
         )}
       </main>
